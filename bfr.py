@@ -6,16 +6,27 @@ class Brainfuck:
         self.ptr = 0
         self.tape = [0]
         self.commands = '' 
-        self.inbuffer = []
+        self.inbuffer = ''
         self.outbuffer = []
+        self.index = 0#for debugging purposes
+        self.inindex = 0
 
-    def read(self, commands, code=False):
+    def readcode(self, commands, code=False):
         if code:
             self.commands = commands
             return
         with open(commands)as f:
             for line in f:
                 self.commands += line
+
+    def readin(self, commands, code=False):
+        if code:
+            self.inbuffer = commands
+            return
+        with open(commands)as f:
+            for line in f:
+                self.inbuffer += line.strip()
+        self.inbuffer += chr(10)
 
     def execute(self):
         index = 0
@@ -41,9 +52,11 @@ class Brainfuck:
                 if self.ptr < 0:
                     raise PointerException('Attempted negative pointer')
             elif cmd is '.':
-                self.outbuffer.append(chr(self.tape[self.ptr]))
+                #self.outbuffer.append(chr(self.tape[self.ptr]))
+                print(chr(self.tape[self.ptr]), end='')
             elif cmd is ',':
-                pass
+                self.tape[self.ptr] = ord(self.inbuffer[self.inindex])#ord(raw_input()[0])
+                self.inindex += 1
             elif cmd is '[':
                 if self.tape[self.ptr] == 0:
                     match = 1 
@@ -63,6 +76,7 @@ class Brainfuck:
                         elif self.commands[index] is ']':
                             match += 1
             index += 1
+            self.index = index
 
 '''
 Exception to be raised whenever the pointer reaches an illegal value
@@ -72,7 +86,14 @@ class PointerException(Exception):
 
 if __name__ == '__main__':
     bf = Brainfuck()
-    bf.read('out.bf')
-    bf.execute()
+    bf.readcode('out.bf')
+    bf.readin('hello.bf')
+    try:
+        bf.execute()
+    except PointerException:
+        print('PointerException')
+        print('ptr\t', bf.ptr)
+        print('tape\t', bf.tape)
+        print(bf.commands[:bf.index+1])
     print(''.join(bf.outbuffer))
-    print('\n')
+    print(bf.tape)
