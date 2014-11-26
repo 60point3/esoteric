@@ -374,21 +374,4 @@ if __name__ == '__main__':
                 bfc._left(2)
         with bfc.eq_('in', 'end'):
             bfc.assign('true', 0)
-
-
-
-
-
-    #bfc.assign('a', 1)
-    #bfc.assign('b', 0)
-    #bfc.assign('c', 0)
-    #bfc.input_('c')
-    #bfc.sub_('c', 48)
-    #bfc.assign('d', 10)
-    #with bfc.for_('c'):
-        #bfc.print_num('a')
-        #bfc.print_('d')
-        #bfc.assign('tmp', 'a')
-        #bfc.add_('a', 'b')
-        #bfc.assign('b', 'tmp')
     print ''.join(bfc.buffer) 
