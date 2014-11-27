@@ -1,6 +1,22 @@
 from contextlib import contextmanager
 '''
-Brainfuck code builder
+Dumb Brainfuck code builder
+
+Translates function calls into a buffer of Brainfuck code.
+This class contains a lot of useful functions that abstract the brainfuck code
+into familiar concepts such as variables and arithmetic.
+
+All functions in the class are "non-destructive", they will not erase a variable used
+by the function. This allows for more general-purpose programs. Do, however, consider
+writing destructive functions as they might speed up the program significantly.
+
+Usage:
+    Create a BFConstuctor object
+    Create your program
+    To define custom functions, add them to the class and use them in the instance
+        (See example program)
+    The program is saved in the buffer variable, which you can print or save
+
 '''
 class BFConstructor:
 
@@ -10,6 +26,11 @@ class BFConstructor:
         self.pointer = 0
         self.tempgen = self.tempgenerator()
     
+    '''
+    As of right now, this program uses strings to keep track of brainfuck variables (cells)
+    This generator provides a simple way to dynamically create variables, as hardcoded
+    variables may collide with each other.
+    '''
     def tempgenerator(self):
         n = 0
         temp = 'temp'
@@ -17,6 +38,10 @@ class BFConstructor:
             yield temp + str(n)
             n += 1
 
+    '''
+    These functions are the meat of the program, at the very lowest level of abstraction.
+    They correspond 1-to-1 with the brainfuck characters.
+    '''
     def _right(self, steps):
         self.buffer.extend(['>' for _ in range(steps)])
 
@@ -28,9 +53,6 @@ class BFConstructor:
 
     def _dec(self, n):
         self.buffer.extend(['-' for _ in range(n)])
-
-    def _zero(self):
-        self.buffer.extend(['[', '-', ']'])
 
     def _print(self):
         self.buffer.append('.')
@@ -44,6 +66,14 @@ class BFConstructor:
     def _end(self):
         self.buffer.append(']')
 
+    def _zero(self):
+        self.buffer.extend(['[', '-', ']'])
+
+    '''
+    3 Different kinds of loops.
+    The usage of context managers provide more intuitive loops and a syntax where
+    indentation matters.
+    '''
     @contextmanager
     def loop(self):
         self._begin()
@@ -65,6 +95,9 @@ class BFConstructor:
             yield
             self.goto(var)
 
+    '''
+    Another core function. This will move the pointer to a variable var.
+    '''
     def goto(self, var):
         index = self.vars.index(var)
         diff = index - self.pointer
@@ -74,10 +107,18 @@ class BFConstructor:
         else:
             self._left(diff * -1)
 
+    '''
+    Tells the program that the variable var is now free to overwrite.
+    '''
     def erase(self, var):
         for v in var:
             self.vars[self.vars.index(v)] = None
 
+    '''
+    Assign assigns a value value to a variable name, creates a variable name if necessary.
+    To follow convention, name should be a string, and value can be either an integer or 
+    a string (int to assign a number, string to assign the value of another variable)
+    '''
     def assign(self, name, value):
         if name not in self.vars:
             if None in self.vars:
@@ -107,12 +148,16 @@ class BFConstructor:
                 self.goto(tmp)
             self.erase([tmp])
 
-    #Reads input into variable
+    '''
+    Reads input into a variable
+    '''
     def input_(self, var):
         self.goto(var)
         self._input()
 
-    #Add y to x
+    '''
+    Adds y to x. Afterwards, x will be x + y, and y will be y.
+    '''
     def add_(self, x, y):
         tmp = self.tempgen.next()
         self.assign(tmp, y)
@@ -125,7 +170,9 @@ class BFConstructor:
         self.goto(x)
         self.erase([tmp])
 
-    #Subtract y from x
+    '''
+    Subtract y from x
+    '''
     def sub_(self, x, y):
         tmp = self.tempgen.next()
         self.assign(tmp, y)
@@ -138,7 +185,9 @@ class BFConstructor:
         self.goto(x)
         self.erase([tmp])
 
-    #Multiplies x by y
+    '''
+    Multiplies x by y
+    '''
     def mul_(self, x, y):
         fac = self.tempgen.next()
         fac1 = self.tempgen.next()
@@ -153,7 +202,9 @@ class BFConstructor:
         self.goto(x)
         self.erase([fac, fac1])
 
-    #Integer division of x by y will not work for y==0.
+    '''
+    Integer division of x by y will not work for y==0.
+    '''
     def div_(self, x, y):
         ta = self.tempgen.next()
         na = self.tempgen.next()
@@ -179,8 +230,26 @@ class BFConstructor:
             self.goto(ta)
         self.goto(x)
         self.erase([ta, na])
+        
+    '''
+    Defines an if statement
+    yields True if var is not 0
+    '''
+    @contextmanager
+    def if_(self, var):
+        tmp = self.tempgen.next()
+        self.assign(tmp, var)
+        self.goto(tmp)
+        with self.loop():
+            yield
+            self.assign(tmp, 0)
+        self.goto(var)
+        self.erase([tmp])
 
-    #True if x is less than y
+    '''
+    Comparison, less than.
+    True if x is less than y
+    '''
     @contextmanager
     def lt_(self, x, y):
         tmp = self.tempgen.next()
@@ -198,6 +267,10 @@ class BFConstructor:
         self.goto(x)
         self.erase([tmp, tmp2])
 
+    '''
+    Greater than
+    True if x is greater than y
+    '''
     @contextmanager
     def gt_(self, x, y):
         tmp = self.tempgen.next()
@@ -215,6 +288,11 @@ class BFConstructor:
         self.goto(x)
         self.erase([tmp, tmp2])
 
+    '''
+    Equal to
+    True if x is equal to y
+    This operation requires byte wrapping
+    '''
     @contextmanager
     def eq_(self, x, y):
         tmp = self.tempgen.next()
@@ -225,7 +303,9 @@ class BFConstructor:
         self.goto(x)
         self.erase([tmp])
 
-    #Assigns x to y mod x. y must be greater than x
+    '''
+    Assigns x to y mod x. y must be greater than x
+    '''
     def mod_(self, x, y):
         na = self.tempgen.next()
         ta = self.tempgen.next()
@@ -247,17 +327,10 @@ class BFConstructor:
         self.goto(x)
         self.erase([na, ta])
 
-    @contextmanager
-    def if_(self, var):
-        tmp = self.tempgen.next()
-        self.assign(tmp, var)
-        self.goto(tmp)
-        with self.loop():
-            yield
-            self.assign(tmp, 0)
-        self.goto(var)
-        self.erase([tmp])
-
+    '''
+    Notif
+    yields True if var is 0
+    '''
     @contextmanager    
     def notif_(self, var):
         tmp = self.tempgen.next()
@@ -271,10 +344,17 @@ class BFConstructor:
         self.goto(var)
         self.erase([tmp])
 
+    '''
+    Prints var
+    '''
     def print_(self, var):
         self.goto(var)
         self._print()
 
+    '''
+    Ugly function ahead!
+    Prints the numeric value of var.
+    '''
     def print_num(self, var):
         tmp = self.tempgen.next()
         hun = self.tempgen.next()
@@ -306,72 +386,5 @@ class BFConstructor:
         self.print_(one)
         self.erase([tmp, hun, ten, one])
 
-
 if __name__ == '__main__':
-    bfc = BFConstructor()
-    bfc.assign('<', ord('<'))
-    bfc.assign('>', ord('>'))
-    bfc.assign('+', ord('+'))
-    bfc.assign('-', ord('-'))
-    bfc.assign('.', ord('.'))
-    bfc.assign(',', ord(','))
-    bfc.assign('[', ord('['))
-    bfc.assign(']', ord(']'))
-    bfc.assign('end', ord('e'))
-    bfc.assign('in', 0)
-    bfc.vars.extend([None for _ in range(11)])
-    bfc.vars.append('array')
-    bfc.assign('true', 1)
-    with bfc.while_('true'):
-        bfc.input_('in')
-        with bfc.eq_('in', '>'):
-            bfc.goto('array')
-            bfc._right(2)
-            with bfc.loop():
-                bfc._right(2)
-            bfc._inc(1)  
-            with bfc.loop():
-                bfc._left(2)
-        with bfc.eq_('in', '<'):
-            bfc.goto('array')
-            bfc._right(2)
-            with bfc.loop():
-                bfc._right(2)
-            bfc._left(2)
-            bfc._dec(1)
-            bfc._left(2)
-            with bfc.loop():
-                bfc._left(2)
-        with bfc.eq_('in', '+'):
-            bfc.goto('array')
-            bfc._right(2)
-            with bfc.loop():
-                bfc._right(2)
-            bfc._left(1)
-            bfc._inc(1)
-            bfc._left(1)
-            with bfc.loop():
-                bfc._left(2)
-        with bfc.eq_('in', '-'):
-            bfc.goto('array')
-            bfc._right(2)
-            with bfc.loop():
-                bfc._right(2)
-            bfc._left(1)
-            bfc._dec(1)
-            bfc._left(1)
-            with bfc.loop():
-                bfc._left(2)
-        with bfc.eq_('in', '.'):
-            bfc.goto('array')
-            bfc._right(2)
-            with bfc.loop():
-                bfc._right(2)
-            bfc._left(1)
-            bfc._print()
-            bfc._left(1)
-            with bfc.loop():
-                bfc._left(2)
-        with bfc.eq_('in', 'end'):
-            bfc.assign('true', 0)
-    print ''.join(bfc.buffer) 
+    print "Don't call directly."
