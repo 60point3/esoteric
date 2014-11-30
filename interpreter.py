@@ -1,16 +1,25 @@
 from bf import BFConstructor as BFC
 from contextlib import contextmanager
 
+'''
+Example program for the Brainfuck Code-constructor.
+
+This program will, when run, output brainfuck-code for a functional brainfuck
+interpreter
+'''
+
 if __name__ == '__main__':
 
     '''
-    Specific functions for memory-reading
-    Constants used in functions
+    Meow
     '''
     
     program = 'p'
-    mem = 'm'
 
+    '''
+    Reads from stdin and puts it in the program memory, when it encounters
+    ASCII 10 it will stop reading.
+    '''
     def readProgram(self):
         self._right(1)
         self._input()
@@ -29,6 +38,9 @@ if __name__ == '__main__':
             self._left(2)
         self._right(1)
 
+    '''
+    Copies the character at the current program pointer into working memory
+    '''
     def get(self, var):
         self.goto(program)
         self._right(2)
@@ -58,6 +70,10 @@ if __name__ == '__main__':
         with self.loop():
             self._left(2)
 
+    '''
+    Increments of every non-zero program pointer. This is used when entering
+    a loop to ease returning to the starting point
+    '''
     def loopinc(self):
         self.goto(program)
         self._right(2)
@@ -69,6 +85,10 @@ if __name__ == '__main__':
         with self.loop():
             self._left(2)
 
+    '''
+    Decrements all non-zero program pointers. This is used to return to the starting
+    point of a loop.
+    '''
     def loopdec(self):
         self.goto(program)
         self._right(2)
@@ -80,6 +100,9 @@ if __name__ == '__main__':
             self._left(2)
         self._right(1)
     
+    '''
+    This moves to the memory as a context manager.
+    '''
     @contextmanager
     def mem(self):
         self.goto(program)
@@ -99,6 +122,11 @@ if __name__ == '__main__':
             self._left(2)
         self._right(1)
 
+    '''
+    Add the custom functions to the base class and create a instance of it
+
+    Below is mostly code defined in BFConstructor.
+    '''
     BFC.readProgram = readProgram
     BFC.get = get
     BFC.mem = mem
@@ -140,6 +168,10 @@ if __name__ == '__main__':
             with bfc.mem():
                 bfc._print()
         with bfc.eq_('a', '['):
+            '''
+            The below code is mostly pure brainfuck code,
+            which definitely falls under the dirty-hack category
+            '''
             bfc.loopinc()
             with bfc.mem():
                 bfc._right(1)
@@ -163,7 +195,7 @@ if __name__ == '__main__':
                         bfc._left(2)
                     bfc._right(1)
                     bfc.get('a')
-                    with bfc.while_('a'):#Antag; ej '[]'
+                    with bfc.while_('a'):
                         bfc.assign('a', 0)
                         bfc.get('a')
                         with bfc.eq_('a', ']'):
@@ -190,5 +222,6 @@ if __name__ == '__main__':
             bfc.loopdec()
         bfc.assign('a', 0)
         bfc.get('a')
-            
+    
+    #Print the buffer
     print ''.join(bfc.buffer)
